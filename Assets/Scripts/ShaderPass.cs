@@ -14,12 +14,12 @@ public class ShaderPass : MonoBehaviour
 	[Range(1,16)] public int levelOfDetails = 1;
 	public bool record = false;
 	public float frameRate = 30f;
+	public float animDuration = 1f;
 
 	private FrameBuffer frameBuffer;
 	private RenderTexture output;
 	private Texture2D texture2D;
 	private string path;
-	private float firedAt;
 	private int index = 0;
 	private bool wasRecording = false;
 	private string filePath;
@@ -39,6 +39,11 @@ public class ShaderPass : MonoBehaviour
 
 	void Update ()
 	{
+
+		if (timeElapsed >= (animDuration-0.00001)) {
+			record = false;
+		}
+
 		if (materialShader) {
 			if (!record) {
 				Shader.SetGlobalTexture(uniformName, frameBuffer.Apply(materialShader));
@@ -53,27 +58,26 @@ public class ShaderPass : MonoBehaviour
 					filePath = System.IO.Path.Combine(path, "Renders") + "/" + DateTime.Now.ToString("yyyyMMddHHmmssffff");
 				}
 
-				timeElapsed = Time.time - timeStarted;
 
-				if (firedAt + 1f / frameRate < Time.time) {
-					firedAt = Time.time;
-					Shader.SetGlobalFloat("_TimeElapsed", Mathf.Clamp01(timeElapsed));
-					Shader.SetGlobalTexture(uniformName, frameBuffer.Apply(materialShader));
+				Shader.SetGlobalFloat("_TimeElapsed", timeElapsed);
+				Shader.SetGlobalTexture(uniformName, frameBuffer.Apply(materialShader));
 
-					if (File.Exists(filePath) == false) {
-						Directory.CreateDirectory(filePath);
-					}
-
-					RenderTexture.active = frameBuffer.Get();
-					texture2D.ReadPixels(new Rect(0, 0, frameBuffer.Get().width, frameBuffer.Get().height), 0, 0);
-					texture2D.Apply();
-					File.WriteAllBytes(filePath + "/" + index.ToString().PadLeft(3, '0') + ".png", texture2D.EncodeToJPG());
-					++index;
+				if (File.Exists(filePath) == false) {
+					Directory.CreateDirectory(filePath);
 				}
 
-				if (timeElapsed >= 1f) {
-					record = false;
-				}
+//				UnityEngine.Debug.Log(timeElapsed);
+
+				RenderTexture.active = frameBuffer.Get();
+				texture2D.ReadPixels(new Rect(0, 0, frameBuffer.Get().width, frameBuffer.Get().height), 0, 0);
+				texture2D.Apply();
+				File.WriteAllBytes(filePath + "/" + index.ToString().PadLeft(3, '0') + ".jpg", texture2D.EncodeToJPG());
+				++index;
+
+				timeElapsed += 1f / frameRate;
+
+
+
 			}
 		}
 	}
